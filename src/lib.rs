@@ -5,6 +5,8 @@
 
 #![warn(rust_2018_idioms)]
 
+pub mod api;
+pub mod db;
 pub mod orchestration;
 pub mod protocols;
 
