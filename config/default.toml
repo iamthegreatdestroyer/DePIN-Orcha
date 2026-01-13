@@ -1,0 +1,92 @@
+# DePIN Orcha Configuration
+# This is the default configuration template
+
+[orchestrator]
+# Port for the orchestrator API
+api_port = 6701
+# Optimization cycle interval in seconds
+optimization_interval = 900  # 15 minutes
+# Database path
+database_path = "./data/depin-orcha.db"
+
+[logging]
+# Log level: trace, debug, info, warn, error
+level = "info"
+# Log output format: json, text
+format = "json"
+# Log directory
+directory = "./logs"
+
+[protocols]
+# Streamr configuration
+[protocols.streamr]
+enabled = true
+api_endpoint = "https://core.streamr.network/api/v1"
+publish_interval_seconds = 60
+min_allocation_percent = 5.0
+max_allocation_percent = 30.0
+
+# Storj configuration
+[protocols.storj]
+enabled = true
+api_endpoint = "http://localhost:14002"
+allocated_storage_gb = 1000.0
+min_allocation_percent = 10.0
+max_allocation_percent = 50.0
+
+# Golem configuration
+[protocols.golem]
+enabled = true
+provider_node_url = "http://localhost:5001"
+cpu_cores = 8
+memory_gb = 16.0
+gpu_enabled = false
+min_allocation_percent = 10.0
+max_allocation_percent = 40.0
+
+# Grass configuration
+[protocols.grass]
+enabled = true
+api_endpoint = "https://api.grassnet.io"
+max_bandwidth_mbps = 100.0
+min_allocation_percent = 5.0
+max_allocation_percent = 25.0
+
+[ml_engine]
+# ML service URL
+api_url = "http://localhost:6702"
+# Prediction confidence threshold (0.0-1.0)
+confidence_threshold = 0.75
+# Reallocation cost in USD per change
+reallocation_cost_usd = 0.0
+# Minimum earnings improvement for reallocation (%)
+min_improvement_percent = 10.0
+
+[monitoring]
+# Prometheus metrics port
+prometheus_port = 6703
+# Enable Grafana integration
+grafana_enabled = true
+grafana_url = "http://localhost:6704"
+
+[database]
+# SQLite database path
+path = "./data/depin-orcha.db"
+# Connection pool size
+pool_size = 10
+# Enable query logging
+query_logging = false
+
+[alerts]
+# Alert configuration
+earnings_drop_threshold_percent = 30
+connection_failure_threshold_minutes = 5
+resource_usage_threshold_percent = 90
+anomaly_detection_enabled = true
+
+[server]
+# Server configuration
+host = "0.0.0.0"
+port = 8080
+# Request timeout in seconds
+request_timeout = 30

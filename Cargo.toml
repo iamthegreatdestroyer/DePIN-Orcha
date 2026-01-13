@@ -1,0 +1,53 @@
+[package]
+name = "depin-orcha"
+version = "0.1.0"
+edition = "2021"
+authors = ["DePIN Orcha Contributors"]
+description = "Intelligent Multi-Protocol DePIN Orchestrator"
+repository = "https://github.com/iamthegreatdestroyer/DePIN-Orcha"
+license = "MIT"
+readme = "README.md"
+
+[workspace]
+members = ["src/core"]
+resolver = "2"
+
+[[bin]]
+name = "depin-orcha"
+path = "src/core/main.rs"
+
+[dependencies]
+tokio = { version = "1.35", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio", "migrate", "chrono"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+anyhow = "1.0"
+thiserror = "1.0"
+config = "0.13"
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+prometheus = "0.13"
+lazy_static = "1.4"
+uuid = { version = "1.6", features = ["v4", "serde"] }
+log = "0.4"
+
+[dev-dependencies]
+mockito = "1.2"
+tokio-test = "0.4"
+criterion = "0.5"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.dev]
+opt-level = 0
+
+[profile.test]
+opt-level = 1

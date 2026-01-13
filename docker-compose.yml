@@ -1,0 +1,99 @@
+version: "3.8"
+
+services:
+  # Rust Core Orchestrator
+  orchestrator:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.orchestrator
+    container_name: depin-orcha-core
+    ports:
+      - "6701:8080"
+    environment:
+      - RUST_LOG=info,depin_orcha=debug
+      - DATABASE_URL=sqlite:///data/depin-orcha.db
+      - CONFIG_PATH=/config/default.toml
+    volumes:
+      - ./config:/config
+      - ./data:/data
+      - ./models:/models
+      - ./logs:/logs
+    depends_on:
+      - ml-engine
+      - prometheus
+    networks:
+      - depin-orcha
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Python ML Engine
+  ml-engine:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ml-engine
+    container_name: depin-orcha-ml
+    ports:
+      - "6702:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=info
+      - ML_MODEL_DIR=/models
+    volumes:
+      - ./src/ml:/app/src/ml
+      - ./models:/models
+      - ./data:/data
+      - ./logs:/logs
+    networks:
+      - depin-orcha
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: depin-orcha-prometheus
+    ports:
+      - "6703:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    networks:
+      - depin-orcha
+    restart: unless-stopped
+
+  # Grafana Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: depin-orcha-grafana
+    ports:
+      - "6704:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - depin-orcha
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  depin-orcha:
+    driver: bridge
