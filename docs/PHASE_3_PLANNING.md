@@ -93,6 +93,7 @@ impl ProtocolCoordinator {
 ```
 
 **Key Methods:**
+
 - `poll_all()` - Gather data from all protocols
 - `get_protocol_status()` - Current state snapshot
 - `get_metrics_history()` - Time series data
@@ -134,6 +135,7 @@ impl EarningsOptimizer {
 ```
 
 **Key Methods:**
+
 - `analyze_opportunities()` - Find inefficiencies
 - `calculate_optimal_allocation()` - Optimization algorithm
 - `estimate_earnings_improvement()` - ROI calculation
@@ -177,6 +179,7 @@ impl ReallocationEngine {
 ```
 
 **Key Methods:**
+
 - `execute_reallocation()` - Apply allocation plan
 - `get_reallocation_history()` - Track changes
 - `can_reallocate()` - Pre-flight checks
@@ -224,6 +227,7 @@ impl RealtimeMonitor {
 ```
 
 **Key Methods:**
+
 - `get_dashboard_metrics()` - Real-time snapshot
 - `check_alerts()` - Alert generation
 - `generate_report()` - Historical analysis
@@ -264,12 +268,14 @@ impl RealtimeMonitor {
 ## 💰 Optimization Strategies
 
 ### Strategy 1: Threshold-Based Reallocation
+
 ```
 IF (optimization_gain > reallocation_cost + 10%)
 THEN execute_reallocation(optimal_plan)
 ```
 
 ### Strategy 2: Time-Based Reallocation
+
 ```
 IF (hours_since_last_reallocation > 24)
 AND (optimization_potential > threshold)
@@ -277,6 +283,7 @@ THEN execute_reallocation()
 ```
 
 ### Strategy 3: Predictive Reallocation
+
 ```
 IF (ml_model.predicts_rate_increase(protocol))
 AND (current_allocation < max)
@@ -284,6 +291,7 @@ THEN execute_reallocation(increase_allocation)
 ```
 
 ### Strategy 4: Risk-Aware Reallocation
+
 ```
 allocation = optimize(earnings, volatility)
 CONSTRAIN: variance <= risk_tolerance
@@ -294,6 +302,7 @@ CONSTRAIN: variance <= risk_tolerance
 ## 🧮 Optimization Algorithm
 
 ### Problem Definition
+
 ```
 maximize: total_earnings(allocation)
 subject to:
@@ -304,6 +313,7 @@ subject to:
 ```
 
 ### Solution Approach
+
 1. **Linear Programming** - Exact solution for linear earnings models
 2. **Greedy Algorithm** - Incremental allocation improvement
 3. **Genetic Algorithm** - Explore complex constraint spaces
@@ -314,6 +324,7 @@ subject to:
 ## 📊 Metrics and KPIs
 
 ### Primary Metrics
+
 - **Total Earnings** - USD/hour across all protocols
 - **Allocation Efficiency** - Earnings vs. allocated resources
 - **Uptime** - Percentage of time all protocols connected
@@ -321,6 +332,7 @@ subject to:
 - **Optimization Success Rate** - % of reallocations improving earnings
 
 ### Secondary Metrics
+
 - **Per-Protocol Earnings** - Individual protocol performance
 - **Resource Utilization** - Actual vs. allocated
 - **Connection Stability** - Time to reconnect
@@ -328,6 +340,7 @@ subject to:
 - **Prediction Accuracy** - Model performance on future earnings
 
 ### Dashboard Display
+
 ```
 ┌─────────────────────────────────────┐
 │ Total Earnings: $12.45 USD/hour     │
@@ -351,6 +364,7 @@ subject to:
 ## 🔒 Safety Constraints
 
 ### Resource Limits
+
 ```rust
 pub struct ResourceConstraints {
     total_cpu: u32,
@@ -361,6 +375,7 @@ pub struct ResourceConstraints {
 ```
 
 ### Allocation Constraints
+
 ```rust
 pub struct AllocationConstraints {
     min_per_protocol: f64,
@@ -371,6 +386,7 @@ pub struct AllocationConstraints {
 ```
 
 ### Safety Checks
+
 - [x] Don't exceed resource limits
 - [x] Respect min/max allocation per protocol
 - [x] Minimum hold time before next reallocation
@@ -383,18 +399,21 @@ pub struct AllocationConstraints {
 ## 🧪 Testing Strategy
 
 ### Unit Tests
+
 - Allocation optimizer calculations
 - Reallocation decision logic
 - Metrics aggregation
 - Alert threshold evaluation
 
 ### Integration Tests
+
 - Multi-protocol coordination
 - Reallocation execution
 - Dashboard updates
 - History tracking
 
 ### End-to-End Tests
+
 - Full optimization cycle
 - Earnings improvement verification
 - Resource constraint validation
@@ -405,18 +424,21 @@ pub struct AllocationConstraints {
 ## 📈 Success Criteria
 
 ### Must Have
+
 - [x] All 4 protocols coordinated
 - [x] Earnings calculation accurate
 - [x] Reallocation working reliably
 - [x] No resource overallocation
 
 ### Should Have
+
 - [x] Optimization suggestions accurate
 - [x] Dashboard responsive (<500ms)
 - [x] Historical data retention (30 days)
 - [x] Alert generation working
 
 ### Nice to Have
+
 - [x] Predictive reallocation
 - [x] Advanced analytics
 - [x] Custom optimization strategies
@@ -427,24 +449,28 @@ pub struct AllocationConstraints {
 ## 🚀 Launch Plan
 
 ### Week 1: Foundation
+
 - [ ] Build ProtocolCoordinator
 - [ ] Implement polling loop
 - [ ] Create data aggregation
 - [ ] Write unit tests
 
 ### Week 2: Optimization
+
 - [ ] Build EarningsOptimizer
 - [ ] Implement optimization algorithm
 - [ ] Create decision logic
 - [ ] Write integration tests
 
 ### Week 3: Execution
+
 - [ ] Build ReallocationEngine
 - [ ] Implement allocation changes
 - [ ] Create rollback mechanism
 - [ ] E2E testing
 
 ### Week 4: Monitoring
+
 - [ ] Build RealtimeMonitor
 - [ ] Create dashboard
 - [ ] Implement alerting
@@ -455,12 +481,14 @@ pub struct AllocationConstraints {
 ## 🎯 Dependencies
 
 ### Required (Phase 2)
+
 - ✅ ProtocolAdapter trait
 - ✅ 4 protocol implementations
 - ✅ Error handling framework
 - ✅ Configuration system
 
 ### Optional (Enhancement)
+
 - ML prediction engine (Phase 4)
 - Web dashboard (Phase 5)
 - Advanced analytics (Phase 5+)
@@ -483,5 +511,5 @@ Orchestration engine development can commence immediately upon Phase 2 completio
 
 ---
 
-*Prepared: January 13, 2026*  
-*Ready: YES ✅*
+_Prepared: January 13, 2026_  
+_Ready: YES ✅_
