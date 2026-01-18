@@ -62,7 +62,8 @@ pub async fn get_metrics_history(
     let limit = req.limit.unwrap_or(1000);
 
     let history = state.coordinator.get_metrics_history().await;
-    
+    let history_len = history.len();
+
     let snapshots: Vec<MetricsSnapshot> = history
         .into_iter()
         .rev()
@@ -70,13 +71,13 @@ pub async fn get_metrics_history(
         .map(|m| MetricsSnapshot {
             timestamp: m.timestamp,
             total_earnings: m.total_earnings_per_hour,
-            earnings_by_protocol: m.earnings_by_protocol,
+            earnings_by_protocol: m.earnings_by_protocol.clone(),
         })
         .collect();
 
     let response = MetricsHistoryResponse {
         metrics: snapshots,
-        total_count: history.len(),
+        total_count: history_len,
     };
 
     Ok(HttpResponse::Ok().json(SuccessResponse::new(response)))
@@ -255,15 +256,15 @@ pub async fn get_dashboard(
             let response = DashboardResponse {
                 timestamp: Utc::now(),
                 total_earnings_per_hour: metrics.total_earnings_per_hour,
-                earnings_by_protocol: metrics.earnings_by_protocol,
+                earnings_by_protocol: metrics.earnings_by_protocol.clone(),
                 current_allocation: metrics.allocation_by_protocol.clone(),
                 optimal_allocation: if let Ok(plan) = optimizer.calculate_optimal_allocation(&metrics) {
                     plan.allocation
                 } else {
-                    metrics.allocation_by_protocol
+                    metrics.allocation_by_protocol.clone()
                 },
                 next_reallocation_in: Some(3600), // 1 hour
-                connection_status: metrics.connection_status,
+                connection_status: metrics.connection_status.clone(),
                 alerts_count: 0, // Would fetch from monitor
             };
 
@@ -300,9 +301,11 @@ pub async fn get_alerts(
         })
         .collect();
 
+    let total_count = alert_dtos.len();
+
     let response = AlertsResponse {
         alerts: alert_dtos,
-        total_count: alert_dtos.len(),
+        total_count,
         critical_count: 0,
     };
 
@@ -346,7 +349,7 @@ pub async fn get_status(
     state: web::Data<AppState>,
 ) -> ActixResult<HttpResponse> {
     let protocols = state.coordinator.registered_protocols();
-    
+
     Ok(HttpResponse::Ok().json(SuccessResponse::new(
         serde_json::json!({
             "protocols": protocols,

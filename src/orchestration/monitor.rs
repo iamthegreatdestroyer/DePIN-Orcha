@@ -180,7 +180,8 @@ impl RealtimeMonitor {
 
         // Trim old alerts
         if alerts.len() > self.config.max_alerts {
-            alerts.drain(0..alerts.len() - self.config.max_alerts);
+            let excess = alerts.len() - self.config.max_alerts;
+            alerts.drain(0..excess);
         }
 
         Ok(new_alerts)
@@ -284,7 +285,8 @@ impl RealtimeMonitor {
 
         // Keep last 10,000 snapshots
         if snapshots.len() > 10000 {
-            snapshots.drain(0..snapshots.len() - 10000);
+            let excess = snapshots.len() - 10000;
+            snapshots.drain(0..excess);
         }
     }
 

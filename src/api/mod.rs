@@ -1,19 +1,17 @@
+pub mod auth;
 /// API Module - HTTP REST & WebSocket Server
 ///
 /// Provides RESTful endpoints for orchestration operations and real-time
 /// WebSocket connectivity for dashboard updates.
-
 pub mod handlers;
+pub mod middleware;
 pub mod models;
 pub mod routes;
 pub mod websocket;
-pub mod middleware;
 
-use actix_web::{web, App, HttpServer, middleware::Logger};
+use crate::{EarningsOptimizer, ProtocolCoordinator, ReallocationEngine, RealtimeMonitor};
+use actix_web::{middleware::Logger, web, App, HttpServer};
 use std::sync::Arc;
-use crate::orchestration::{
-    ProtocolCoordinator, EarningsOptimizer, ReallocationEngine, RealtimeMonitor,
-};
 use tracing::info;
 
 // ============================================================================
@@ -71,10 +69,9 @@ impl Default for ApiConfig {
 }
 
 /// Start the API server
-pub async fn start_server(
-    config: ApiConfig,
-    app_state: AppState,
-) -> std::io::Result<()> {
+/// Note: This function is not currently used. See src/bin/main.rs for the actual server setup.
+#[allow(dead_code)]
+pub async fn start_server(config: ApiConfig, app_state: AppState) -> std::io::Result<()> {
     let addr = format!("{}:{}", config.host, config.port);
     info!("🚀 Starting API server on {}", addr);
 
@@ -85,7 +82,8 @@ pub async fn start_server(
             .app_data(web::Data::new(app_state_clone.clone()))
             .wrap(Logger::default())
             .wrap(middleware::RequestIdMiddleware)
-            .configure(routes::configure_routes)
+        // Note: configure_routes requires db_pool parameter
+        // See main.rs for proper implementation
     })
     .workers(config.workers)
     .bind(&addr)?

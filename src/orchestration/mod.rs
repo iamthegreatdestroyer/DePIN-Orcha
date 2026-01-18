@@ -32,7 +32,7 @@ pub enum OrchestrationError {
     MonitoringError(String),
 
     #[error("Protocol error: {0}")]
-    ProtocolError(String),
+    ProtocolError(#[from] crate::protocols::ProtocolError),
 
     #[error("Configuration error: {0}")]
     ConfigurationError(String),

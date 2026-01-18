@@ -41,11 +41,15 @@ impl Default for DbConfig {
 pub async fn init_pool(config: DbConfig) -> Result<SqlitePool, sqlx::Error> {
     info!("Initializing database: {}", config.database_url);
 
+    // Create database file if it doesn't exist by opening with create flag
     let pool = SqlitePoolOptions::new()
         .max_connections(config.max_connections)
         .min_connections(config.min_connections)
-        .connect_timeout(Duration::from_secs(config.connect_timeout))
-        .connect(&config.database_url)
+        .acquire_timeout(Duration::from_secs(config.connect_timeout))
+        .connect_with(
+            config.database_url.parse::<sqlx::sqlite::SqliteConnectOptions>()?
+                .create_if_missing(true)
+        )
         .await?;
 
     // Run migrations

@@ -9,6 +9,7 @@ pub mod api;
 pub mod db;
 pub mod orchestration;
 pub mod protocols;
+pub mod scheduler;
 
 // Re-export commonly used types
 pub use orchestration::{

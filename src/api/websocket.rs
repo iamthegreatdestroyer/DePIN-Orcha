@@ -20,11 +20,12 @@ pub async fn ws_handler(
     stream: web::Payload,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    let (response, session, _) = actix_ws::handle(&req, stream)?;
+    let (response, session, msg_stream) = actix_ws::handle(&req, stream)?;
 
     // Spawn a task to handle the WebSocket session
     actix_web::rt::spawn(handle_ws_session(
         session,
+        msg_stream,
         state.into_inner(),
     ));
 
@@ -34,6 +35,7 @@ pub async fn ws_handler(
 /// Handle a WebSocket session
 async fn handle_ws_session(
     mut session: actix_ws::Session,
+    mut msg_stream: actix_ws::MessageStream,
     state: Arc<AppState>,
 ) {
     tracing::info!("WebSocket connection established");
@@ -59,9 +61,7 @@ async fn handle_ws_session(
     loop {
         tokio::select! {
             // Handle incoming WebSocket messages
-            msg = futures::future::poll_fn(|cx| {
-                std::pin::Pin::new(&mut session).poll_next(cx)
-            }) => {
+            msg = msg_stream.next() => {
                 match msg {
                     Some(Ok(Message::Text(text))) => {
                         if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
