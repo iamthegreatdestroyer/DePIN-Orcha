@@ -1,10 +1,10 @@
-/// Multi-Protocol Coordinator
-///
-/// Monitors and aggregates data from all protocol adapters.
-/// Provides unified view of earnings, resources, and connection status.
+//! Multi-Protocol Coordinator
+//!
+//! Monitors and aggregates data from all protocol adapters.
+//! Provides unified view of earnings, resources, and connection status.
 
 use super::{AggregatedMetrics, OrchestrationError, OrchestrationResult, ResourceUtilization};
-use crate::protocols::{ProtocolAdapter, EarningsData, ResourceMetrics};
+use crate::protocols::{ProtocolAdapter, ResourceMetrics};
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;

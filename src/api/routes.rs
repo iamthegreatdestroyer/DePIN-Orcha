@@ -5,7 +5,7 @@ use actix_web::web;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
-use super::{auth, handlers, middleware};
+use super::{auth, handlers, middleware, nodes as node_handlers};
 
 /// Configure all API routes with authentication and rate limiting
 pub fn configure_routes(cfg: &mut web::ServiceConfig, db_pool: Arc<SqlitePool>) {
@@ -18,6 +18,11 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig, db_pool: Arc<SqlitePool>) 
             // Public routes (no authentication required)
             .route("/health", web::get().to(handlers::health_check))
             .route("/status", web::get().to(handlers::get_status))
+            // Node registry & task routing (public for DePIN node operators)
+            .route("/nodes/register", web::post().to(node_handlers::register_node))
+            .route("/nodes/{id}", web::delete().to(node_handlers::deregister_node))
+            .route("/nodes/discover", web::get().to(node_handlers::discover_nodes))
+            .route("/tasks/route", web::post().to(node_handlers::route_task))
             // Protected endpoints sub-scope (authentication required)
             .service(
                 web::scope("")

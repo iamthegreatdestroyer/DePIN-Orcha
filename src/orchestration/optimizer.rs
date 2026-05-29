@@ -3,8 +3,7 @@
 /// Analyzes earnings patterns and identifies optimization opportunities.
 /// Calculates optimal resource allocation to maximize total earnings.
 use super::{
-    AggregatedMetrics, AllocationPlan, OptimizationOpportunity, OrchestrationError,
-    OrchestrationResult,
+    AggregatedMetrics, AllocationPlan, OptimizationOpportunity, OrchestrationResult,
 };
 use std::collections::HashMap;
 
@@ -102,7 +101,7 @@ impl EarningsOptimizer {
                 let from_rate = earnings.get(from_protocol).copied().unwrap_or(0.0);
                 let to_rate = earnings.get(to_protocol).copied().unwrap_or(0.0);
                 let from_allocation = allocation.get(from_protocol).copied().unwrap_or(0.0);
-                let to_allocation = allocation.get(to_protocol).copied().unwrap_or(0.0);
+                let _to_allocation = allocation.get(to_protocol).copied().unwrap_or(0.0);
 
                 // Skip if rates are similar or insufficient allocation
                 if (to_rate - from_rate).abs() < 0.01 || from_allocation < 1.0 {
@@ -157,7 +156,7 @@ impl EarningsOptimizer {
 
         // Greedy allocation: allocate more to higher earning protocols
         let mut optimal = current_allocation.clone();
-        let mut total_allocation = current_allocation.values().sum::<f64>();
+        let total_allocation = current_allocation.values().sum::<f64>();
 
         // Normalize to 100%
         if (total_allocation - 100.0).abs() > 0.1 {
@@ -196,7 +195,6 @@ impl EarningsOptimizer {
         }
 
         // Calculate improvement
-        let current_earnings = earnings.values().sum::<f64>();
         let estimated_improvement = self.estimate_earnings_improvement(&new_allocation, earnings);
         let net_benefit = estimated_improvement;
         let cost = estimated_improvement * 0.05; // Assume 5% cost
@@ -347,7 +345,13 @@ mod tests {
 
     #[test]
     fn test_analyze_opportunities() {
-        let optimizer = EarningsOptimizer::new(OptimizerConfig::default());
+        // Use a low threshold so the test data (rate_diff=1.5, improvement≈0.045) triggers an opportunity
+        let config = OptimizerConfig {
+            min_improvement_threshold: 0.01,
+            min_improvement_percent: 0.5,
+            ..OptimizerConfig::default()
+        };
+        let optimizer = EarningsOptimizer::new(config);
         let metrics = create_test_metrics();
 
         let opportunities = optimizer.analyze_opportunities(&metrics).unwrap();

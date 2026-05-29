@@ -1,13 +1,13 @@
-/// Grass Network Protocol Adapter
-///
-/// Grass is a network that monetizes consumer bandwidth and data.
-/// Users can earn rewards by sharing their internet connection.
-///
-/// This adapter manages:
-/// - Connection to Grass network
-/// - Bandwidth sharing and monitoring
-/// - Earnings tracking from data provision
-/// - Resource allocation and optimization
+//! Grass Network Protocol Adapter
+//!
+//! Grass is a network that monetizes consumer bandwidth and data.
+//! Users can earn rewards by sharing their internet connection.
+//!
+//! This adapter manages:
+//! - Connection to Grass network
+//! - Bandwidth sharing and monitoring
+//! - Earnings tracking from data provision
+//! - Resource allocation and optimization
 
 use super::{
     AllocationStrategy, ConnectionStatus, EarningsData, HealthStatus, ProtocolAdapter,
@@ -135,10 +135,7 @@ impl GrassAdapter {
         // Rank multiplier: better rank = higher earnings
         let rank_multiplier = (100000.0 / metrics.user_rank.max(100) as f64).min(3.0);
 
-        let allocated_earnings =
-            bandwidth_earnings * rank_multiplier * (allocation.allocation_percent / 100.0);
-
-        allocated_earnings
+        bandwidth_earnings * rank_multiplier * (allocation.allocation_percent / 100.0)
     }
 }
 

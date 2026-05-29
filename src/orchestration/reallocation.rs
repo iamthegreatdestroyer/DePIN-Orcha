@@ -1,7 +1,7 @@
-/// Reallocation Engine
-///
-/// Executes allocation changes across protocols.
-/// Manages reallocation history and validates changes.
+//! Reallocation Engine
+//!
+//! Executes allocation changes across protocols.
+//! Manages reallocation history and validates changes.
 
 use super::{AllocationChange, AllocationPlan, OrchestrationError, OrchestrationResult};
 use crate::protocols::{AllocationStrategy, ProtocolAdapter};
@@ -308,7 +308,7 @@ mod tests {
     fn test_estimate_cost() {
         let engine = ReallocationEngine::new(ReallocationConfig::default());
         let cost = engine.estimate_reallocation_cost(3);
-        assert_eq!(cost, 0.15);
+        assert!((cost - 0.15).abs() < f64::EPSILON * 10.0);
     }
 
     #[tokio::test]

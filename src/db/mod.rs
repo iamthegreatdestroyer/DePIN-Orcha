@@ -1,6 +1,6 @@
-/// Database Module
-///
-/// Database models, queries, and connection management for metrics persistence.
+//! Database Module
+//!
+//! Database models, queries, and connection management for metrics persistence.
 
 pub mod models;
 pub mod queries;

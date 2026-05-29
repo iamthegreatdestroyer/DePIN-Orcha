@@ -57,7 +57,7 @@ pub async fn create_api_key(
 
     // Hash the API key for storage
     let key_hash = bcrypt::hash(&api_key, bcrypt::DEFAULT_COST)
-        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+        .map_err(actix_web::error::ErrorInternalServerError)?;
 
     // Calculate expiration
     let expires_at = req
@@ -66,7 +66,7 @@ pub async fn create_api_key(
 
     // Serialize permissions
     let permissions = serde_json::to_string(&req.permissions.clone().unwrap_or_default())
-        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+        .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let rate_limit = req.rate_limit_per_minute.unwrap_or(60);
     let now = Utc::now().to_rfc3339();
@@ -88,14 +88,14 @@ pub async fn create_api_key(
     )
     .execute(db.get_ref())
     .await
-    .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+    .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let key_id = result.last_insert_rowid();
 
     // Fetch the created key info
     let info = get_api_key_info(db.get_ref(), key_id)
         .await
-        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+        .map_err(actix_web::error::ErrorInternalServerError)?;
 
     Ok(HttpResponse::Created().json(CreateApiKeyResponse { api_key, info }))
 }
@@ -113,7 +113,7 @@ pub async fn list_api_keys(db: web::Data<SqlitePool>) -> Result<HttpResponse> {
     )
     .fetch_all(db.get_ref())
     .await
-    .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+    .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let keys: Vec<ApiKeyInfo> = records
         .into_iter()
@@ -144,7 +144,7 @@ pub async fn get_api_key(
 ) -> Result<HttpResponse> {
     let info = get_api_key_info(db.get_ref(), *key_id)
         .await
-        .map_err(|e| actix_web::error::ErrorNotFound(e))?;
+        .map_err(actix_web::error::ErrorNotFound)?;
 
     Ok(HttpResponse::Ok().json(info))
 }
@@ -182,7 +182,7 @@ pub async fn update_api_key(
     if let Some(permissions) = &req.permissions {
         updates.push("permissions = ?");
         let perms_json = serde_json::to_string(permissions)
-            .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+            .map_err(actix_web::error::ErrorInternalServerError)?;
         params.push(perms_json);
     }
 
@@ -202,11 +202,11 @@ pub async fn update_api_key(
     .bind(key_id_value)
     .execute(db.get_ref())
     .await
-    .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+    .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let info = get_api_key_info(db.get_ref(), key_id_value)
         .await
-        .map_err(|e| actix_web::error::ErrorNotFound(e))?;
+        .map_err(actix_web::error::ErrorNotFound)?;
 
     Ok(HttpResponse::Ok().json(info))
 }
@@ -219,7 +219,7 @@ pub async fn delete_api_key(
     sqlx::query!("DELETE FROM api_keys WHERE id = ?", *key_id)
         .execute(db.get_ref())
         .await
-        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+        .map_err(actix_web::error::ErrorInternalServerError)?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,

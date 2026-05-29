@@ -1,13 +1,13 @@
-/// Storj Decentralized Storage Protocol Adapter
-///
-/// Storj is a decentralized cloud storage network where users can earn rewards
-/// by providing storage space and bandwidth.
-///
-/// This adapter manages:
-/// - Connection to Storj satellite network
-/// - Storage node participation
-/// - Earnings tracking from storage services
-/// - Resource allocation and utilization
+//! Storj Decentralized Storage Protocol Adapter
+//!
+//! Storj is a decentralized cloud storage network where users can earn rewards
+//! by providing storage space and bandwidth.
+//!
+//! This adapter manages:
+//! - Connection to Storj satellite network
+//! - Storage node participation
+//! - Earnings tracking from storage services
+//! - Resource allocation and utilization
 
 use super::{
     AllocationStrategy, ConnectionStatus, EarningsData, HealthStatus, ProtocolAdapter,
@@ -59,6 +59,7 @@ impl Default for StorjConfig {
 // ============================================================================
 
 /// Storj metrics tracked internally
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct StorjMetrics {
     storage_used_gb: f64,

@@ -6,9 +6,12 @@ pub mod auth;
 pub mod handlers;
 pub mod middleware;
 pub mod models;
+pub mod nodes;
 pub mod routes;
 pub mod websocket;
 
+use crate::nodes::NodeRegistry;
+use crate::router::TaskRouter;
 use crate::{EarningsOptimizer, ProtocolCoordinator, ReallocationEngine, RealtimeMonitor};
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use std::sync::Arc;
@@ -25,6 +28,8 @@ pub struct AppState {
     pub optimizer: Arc<tokio::sync::Mutex<EarningsOptimizer>>,
     pub reallocation: Arc<ReallocationEngine>,
     pub monitor: Arc<RealtimeMonitor>,
+    pub node_registry: Arc<NodeRegistry>,
+    pub task_router: Arc<TaskRouter>,
 }
 
 impl AppState {
@@ -34,12 +39,16 @@ impl AppState {
         optimizer: Arc<tokio::sync::Mutex<EarningsOptimizer>>,
         reallocation: Arc<ReallocationEngine>,
         monitor: Arc<RealtimeMonitor>,
+        node_registry: Arc<NodeRegistry>,
+        task_router: Arc<TaskRouter>,
     ) -> Self {
         Self {
             coordinator,
             optimizer,
             reallocation,
             monitor,
+            node_registry,
+            task_router,
         }
     }
 }

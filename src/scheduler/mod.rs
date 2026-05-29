@@ -23,10 +23,9 @@
 //!         └─> Generate performance reports → Store to DB
 //! ```
 
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use sqlx::SqlitePool;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use tokio::time::{interval, Duration};
 
 use crate::ProtocolCoordinator;
@@ -361,30 +360,6 @@ async fn store_metrics_to_db(
     Ok(())
 }
 
-/// Helper: Store reallocation to database
-async fn store_reallocation_to_db(
-    db_pool: &SqlitePool,
-    protocol: &str,
-    old_allocation: f64,
-    new_allocation: f64,
-    earnings_impact: Option<f64>,
-    reason: Option<&str>,
-) -> Result<(), sqlx::Error> {
-    use crate::db::queries::store_reallocation;
-    use chrono::Utc;
-
-    store_reallocation(
-        db_pool,
-        Utc::now(),
-        protocol.to_string(),
-        old_allocation,
-        new_allocation,
-        earnings_impact,
-        reason.map(|s| s.to_string()),
-    )
-    .await
-}
-
 /// Helper: Store alert to database
 async fn store_alert_to_db(
     db_pool: &SqlitePool,
@@ -413,7 +388,7 @@ fn calculate_severity(current_value: f64, threshold: f64) -> f64 {
     let severity_base = (exceedance / threshold) * 100.0;
 
     // Cap at 100.0
-    severity_base.min(100.0).max(0.0)
+    severity_base.clamp(0.0, 100.0)
 }
 
 #[cfg(test)]

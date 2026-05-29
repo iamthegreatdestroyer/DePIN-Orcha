@@ -1,16 +1,14 @@
-/// WebSocket Real-Time Updates
-///
-/// Handles WebSocket connections for real-time dashboard updates.
+//! WebSocket Real-Time Updates
+//!
+//! Handles WebSocket connections for real-time dashboard updates.
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use actix_ws::Message;
-use futures::{SinkExt, StreamExt};
+use futures::StreamExt;
 use std::sync::Arc;
-use tokio::sync::broadcast;
 use serde_json::json;
 use chrono::Utc;
 
-use crate::orchestration::AggregatedMetrics;
 use super::models::{WsMessage, MetricsSnapshot};
 use super::AppState;
 
@@ -66,21 +64,19 @@ async fn handle_ws_session(
                     Some(Ok(Message::Text(text))) => {
                         if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
                             match ws_msg {
-                                WsMessage::Subscribe { protocol } => {
-                                    if let Some(proto) = protocol {
-                                        subscriptions.insert(format!("metrics:{}", proto));
-                                        let response = json!({
-                                            "type": "subscribed",
-                                            "protocol": proto,
-                                        });
-                                        let _ = session.text(response.to_string()).await;
-                                    }
+                                WsMessage::Subscribe { protocol: Some(proto) } => {
+                                    subscriptions.insert(format!("metrics:{}", proto));
+                                    let response = json!({
+                                        "type": "subscribed",
+                                        "protocol": proto,
+                                    });
+                                    let _ = session.text(response.to_string()).await;
                                 }
-                                WsMessage::Unsubscribe { protocol } => {
-                                    if let Some(proto) = protocol {
-                                        subscriptions.remove(&format!("metrics:{}", proto));
-                                    }
+                                WsMessage::Subscribe { protocol: None } => {}
+                                WsMessage::Unsubscribe { protocol: Some(proto) } => {
+                                    subscriptions.remove(&format!("metrics:{}", proto));
                                 }
+                                WsMessage::Unsubscribe { protocol: None } => {}
                                 WsMessage::Ping => {
                                     let _ = session.text(json!({"type": "pong"}).to_string()).await;
                                 }

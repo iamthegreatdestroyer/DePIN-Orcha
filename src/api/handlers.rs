@@ -1,11 +1,9 @@
-/// API Endpoint Handlers
-///
-/// HTTP request handlers for all API endpoints.
+//! API Endpoint Handlers
+//!
+//! HTTP request handlers for all API endpoints.
 
 use actix_web::{web, HttpResponse, Result as ActixResult};
-use crate::orchestration::OrchestrationError;
 use chrono::Utc;
-use std::collections::HashMap;
 
 use super::models::*;
 use super::AppState;
@@ -58,7 +56,7 @@ pub async fn get_metrics_history(
     state: web::Data<AppState>,
     req: web::Query<MetricsHistoryRequest>,
 ) -> ActixResult<HttpResponse> {
-    let hours = req.hours.unwrap_or(24);
+    let _hours = req.hours.unwrap_or(24);
     let limit = req.limit.unwrap_or(1000);
 
     let history = state.coordinator.get_metrics_history().await;
@@ -199,7 +197,7 @@ pub async fn execute_reallocation(
     }
 
     // Check if can reallocate
-    if let Err(_) = state.reallocation.can_reallocate().await {
+    if state.reallocation.can_reallocate().await.is_err() {
         let error = ErrorResponse::new(
             "CANNOT_REALLOCATE".to_string(),
             "Reallocation not currently allowed (rate limit or hold duration)".to_string(),
@@ -249,7 +247,7 @@ pub async fn get_dashboard(
     match state.coordinator.get_current_metrics().await {
         Ok(Some(metrics)) => {
             let optimizer = state.optimizer.lock().await;
-            let opportunities = optimizer
+            let _opportunities = optimizer
                 .analyze_opportunities(&metrics)
                 .unwrap_or_default();
 

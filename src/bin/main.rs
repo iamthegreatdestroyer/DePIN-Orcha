@@ -35,8 +35,10 @@ use tokio::signal;
 use tokio::sync::Mutex;
 
 // Import our modules
-use depin_orcha::api::{routes::configure_routes, middleware::RequestIdMiddleware, websocket, ApiConfig, AppState};
+use depin_orcha::api::{routes::configure_routes, websocket, ApiConfig, AppState};
 use depin_orcha::db::{create_schema, init_pool, DbConfig};
+use depin_orcha::nodes::NodeRegistry;
+use depin_orcha::router::{RoutingStrategy, TaskRouter};
 use depin_orcha::{
     ProtocolCoordinator, EarningsOptimizer, OptimizerConfig,
     ReallocationEngine, ReallocationConfig,
@@ -102,12 +104,21 @@ async fn main() -> std::io::Result<()> {
     let monitor = Arc::new(RealtimeMonitor::new(monitor_config));
     log::info!("✅ Realtime Monitor initialized");
 
-    // Step 7: Create Application State (thread-safe, Arc-wrapped)
+    // Step 7: Initialize Node Registry and Task Router
+    let node_registry = Arc::new(NodeRegistry::new(60));
+    log::info!("✅ Node Registry initialized (60s health timeout)");
+
+    let task_router = Arc::new(TaskRouter::new(node_registry.clone(), RoutingStrategy::CapacityFirst));
+    log::info!("✅ Task Router initialized (CapacityFirst strategy)");
+
+    // Create Application State (thread-safe, Arc-wrapped)
     let app_state = web::Data::new(AppState {
         coordinator: coordinator.clone(),
         optimizer: optimizer.clone(),
         reallocation: reallocation.clone(),
         monitor: monitor.clone(),
+        node_registry,
+        task_router,
     });
     log::info!("✅ Application state created");
 

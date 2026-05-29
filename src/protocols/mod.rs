@@ -1,8 +1,8 @@
-/// Protocol Adapters Module
-///
-/// Provides trait definitions and implementations for all supported DePIN protocols.
-/// Each protocol adapter manages connection, earnings tracking, and resource allocation
-/// for its respective network.
+//! Protocol Adapters Module
+//!
+//! Provides trait definitions and implementations for all supported DePIN protocols.
+//! Each protocol adapter manages connection, earnings tracking, and resource allocation
+//! for its respective network.
 
 pub mod streamr;
 pub mod storj;

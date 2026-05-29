@@ -1,7 +1,7 @@
-/// Real-Time Monitor
-///
-/// Provides dashboard metrics, alerting, and performance reporting.
-/// Generates real-time insights and historical analysis.
+//! Real-Time Monitor
+//!
+//! Provides dashboard metrics, alerting, and performance reporting.
+//! Generates real-time insights and historical analysis.
 
 use super::{
     AggregatedMetrics, Alert, AlertType, DashboardSnapshot, OptimizationOpportunity,

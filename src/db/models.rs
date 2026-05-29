@@ -1,6 +1,6 @@
-/// Database Models
-///
-/// SQL models for database operations.
+//! Database Models
+//!
+//! SQL models for database operations.
 
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;

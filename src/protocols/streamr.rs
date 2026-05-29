@@ -1,13 +1,13 @@
-/// Streamr Network Protocol Adapter
-///
-/// Streamr is a real-time data streaming network where users can earn rewards
-/// for providing network bandwidth and node participation.
-///
-/// This adapter manages:
-/// - Connection to Streamr broker network
-/// - Data stream publishing and subscription
-/// - Earnings tracking from network participation
-/// - Resource allocation and optimization
+//! Streamr Network Protocol Adapter
+//!
+//! Streamr is a real-time data streaming network where users can earn rewards
+//! for providing network bandwidth and node participation.
+//!
+//! This adapter manages:
+//! - Connection to Streamr broker network
+//! - Data stream publishing and subscription
+//! - Earnings tracking from network participation
+//! - Resource allocation and optimization
 
 use super::{
     AllocationStrategy, ConnectionStatus, EarningsData, HealthStatus, ProtocolAdapter,
@@ -59,25 +59,14 @@ impl Default for StreamrConfig {
 // ============================================================================
 
 /// Streamr metrics tracked internally
-#[derive(Debug, Clone)]
+#[allow(dead_code)]
+#[derive(Debug, Clone, Default)]
 struct StreamrMetrics {
     messages_published: u64,
     bytes_published: u64,
     last_publish_time: Option<DateTime<Utc>>,
     connection_uptime_seconds: u64,
     connected_at: Option<DateTime<Utc>>,
-}
-
-impl Default for StreamrMetrics {
-    fn default() -> Self {
-        Self {
-            messages_published: 0,
-            bytes_published: 0,
-            last_publish_time: None,
-            connection_uptime_seconds: 0,
-            connected_at: None,
-        }
-    }
 }
 
 // ============================================================================

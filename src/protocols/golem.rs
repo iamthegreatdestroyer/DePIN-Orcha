@@ -1,13 +1,13 @@
-/// Golem Decentralized Compute Network Adapter
-///
-/// Golem is a decentralized compute network where users can earn rewards
-/// by providing computational resources (CPU, GPU) to the network.
-///
-/// This adapter manages:
-/// - Connection to Golem requestor network
-/// - Provider node registration and management
-/// - Computational task execution and earnings
-/// - Resource allocation and optimization
+//! Golem Decentralized Compute Network Adapter
+//!
+//! Golem is a decentralized compute network where users can earn rewards
+//! by providing computational resources (CPU, GPU) to the network.
+//!
+//! This adapter manages:
+//! - Connection to Golem requestor network
+//! - Provider node registration and management
+//! - Computational task execution and earnings
+//! - Resource allocation and optimization
 
 use super::{
     AllocationStrategy, ConnectionStatus, EarningsData, HealthStatus, ProtocolAdapter,

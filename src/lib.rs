@@ -7,8 +7,10 @@
 
 pub mod api;
 pub mod db;
+pub mod nodes;
 pub mod orchestration;
 pub mod protocols;
+pub mod router;
 pub mod scheduler;
 
 // Re-export commonly used types

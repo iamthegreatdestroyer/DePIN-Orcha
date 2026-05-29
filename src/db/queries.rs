@@ -1,10 +1,9 @@
-/// Database Queries
-///
-/// SQL query functions for metrics persistence and retrieval.
+//! Database Queries
+//!
+//! SQL query functions for metrics persistence and retrieval.
 
 use sqlx::SqlitePool;
 use chrono::{DateTime, Utc};
-use std::collections::HashMap;
 
 use super::models::*;
 
