@@ -4,11 +4,13 @@
 //! Manages reallocation history and validates changes.
 
 use super::{AllocationChange, AllocationPlan, OrchestrationError, OrchestrationResult};
+use crate::consensus::HelixConsensusClient;
 use crate::protocols::{AllocationStrategy, ProtocolAdapter};
 use chrono::{DateTime, Duration, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 // ============================================================================
 // REALLOCATION CONFIGURATION
@@ -45,30 +47,69 @@ impl Default for ReallocationConfig {
 /// Reallocation Engine
 ///
 /// Manages allocation changes across all protocols.
+/// Epoch 5: calls HELIX swarm consensus before any reallocation executes.
 pub struct ReallocationEngine {
     config: ReallocationConfig,
     history: Arc<RwLock<Vec<AllocationChange>>>,
     last_reallocation: Arc<RwLock<Option<DateTime<Utc>>>>,
     previous_allocation: Arc<RwLock<HashMap<String, f64>>>,
+    /// Optional HELIX consensus client.  None = consensus disabled (legacy mode).
+    consensus_client: Option<Arc<HelixConsensusClient>>,
 }
 
 impl ReallocationEngine {
-    /// Create a new reallocation engine
+    /// Create a new reallocation engine (no consensus guard)
     pub fn new(config: ReallocationConfig) -> Self {
         Self {
             config,
             history: Arc::new(RwLock::new(Vec::new())),
             last_reallocation: Arc::new(RwLock::new(None)),
             previous_allocation: Arc::new(RwLock::new(HashMap::new())),
+            consensus_client: None,
         }
     }
 
-    /// Execute a reallocation plan
+    /// Create with HELIX Epoch 5 consensus guard enabled
+    pub fn with_helix_consensus(config: ReallocationConfig) -> Self {
+        Self {
+            config,
+            history: Arc::new(RwLock::new(Vec::new())),
+            last_reallocation: Arc::new(RwLock::new(None)),
+            previous_allocation: Arc::new(RwLock::new(HashMap::new())),
+            consensus_client: Some(Arc::new(HelixConsensusClient::new())),
+        }
+    }
+
+    /// Attach an existing consensus client (useful for testing with mocks)
+    pub fn set_consensus_client(&mut self, client: HelixConsensusClient) {
+        self.consensus_client = Some(Arc::new(client));
+    }
+
+    /// Execute a reallocation plan.
+    ///
+    /// Epoch 5: calls the HELIX swarm consensus endpoint before proceeding.
+    /// If consensus is rejected, returns `OrchestrationError::ReallocationError`.
     pub async fn execute_reallocation(
         &self,
         plan: &AllocationPlan,
         adapters: &HashMap<String, Arc<RwLock<Box<dyn ProtocolAdapter>>>>,
     ) -> OrchestrationResult<()> {
+        // ── Epoch 5: HELIX swarm consensus gate ───────────────────────────
+        if let Some(ref consensus) = self.consensus_client {
+            let proposal_id = Uuid::new_v4().to_string();
+            let result = consensus.vote(plan, &proposal_id).await;
+            tracing::info!(
+                "HELIX consensus: proposal={} status={:?} score={:.3} eif={:.3}",
+                proposal_id, result.status, result.score, result.eif
+            );
+            if !result.is_approved() {
+                return Err(OrchestrationError::ReallocationError(format!(
+                    "HELIX swarm rejected proposal {}: {} (score={:.3})",
+                    proposal_id, result.reason, result.score
+                )));
+            }
+        }
+
         // Validate constraints
         self.can_reallocate().await?;
 

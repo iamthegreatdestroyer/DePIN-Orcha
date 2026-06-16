@@ -1,0 +1,33 @@
+# Node 0 — SigmaVault-NAS-Test VM
+# First registered HELIX node in the DePIN network.
+# Activated post Phase 0 physical deployment.
+#
+# To activate: copy this file to the deployed VM and reference it via
+# DEPIN_NODE_CONFIG environment variable, or pass --config config/node_zero.toml
+
+[node]
+id        = "helix-node-0"
+name      = "SigmaVault-NAS-Test"
+role      = "primary"
+
+# Network address of the deployed SigmaVault VM
+# IP assigned by Hyper-V Default Switch DHCP — rescan if unreachable
+host      = "172.29.133.98"
+helix_port = 8000
+depin_port = 8080
+
+[consensus]
+# HELIX consensus endpoint on Node 0
+helix_url    = "http://172.29.133.98:8000/consensus/vote"
+bypass_on_error = true   # never block DePIN-Orcha if HELIX is down
+
+[hardware]
+# SigmaVault VM resource profile (adjust after actual measurement)
+cpu_cores    = 4
+memory_gb    = 8.0
+storage_gb   = 900.0     # 1TB drive, ~100GB reserved for OS
+bandwidth_mbps = 1000.0
+
+[protocols]
+# Which DePIN protocols this node can run
+enabled = ["storj", "grass"]
