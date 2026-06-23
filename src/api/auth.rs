@@ -193,16 +193,20 @@ pub async fn update_api_key(
         })));
     }
 
-    // Execute update (simplified version - in production use proper parameterized query)
     let key_id_value = *key_id;
-    sqlx::query(&format!(
+    let sql = format!(
         "UPDATE api_keys SET {} WHERE id = ?",
         updates.join(", ")
-    ))
-    .bind(key_id_value)
-    .execute(db.get_ref())
-    .await
-    .map_err(actix_web::error::ErrorInternalServerError)?;
+    );
+    let mut query = sqlx::query(&sql);
+    for param in &params {
+        query = query.bind(param.clone());
+    }
+    query = query.bind(key_id_value);
+    query
+        .execute(db.get_ref())
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?;
 
     let info = get_api_key_info(db.get_ref(), key_id_value)
         .await
