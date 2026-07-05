@@ -400,7 +400,7 @@ impl RateLimitMiddleware {
 
         let current_count = count.count;
 
-        if current_count >= limit {
+        if current_count >= i64::from(limit) {
             return Err(RateLimitError::Exceeded {
                 retry_after: window_duration.as_secs(),
             });
