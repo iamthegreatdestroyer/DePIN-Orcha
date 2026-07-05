@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.75 as builder
+FROM rust:1.96-slim-trixie as builder
 
 WORKDIR /build
 
@@ -12,6 +12,16 @@ RUN apt-get update && apt-get install -y \
 # Copy project files
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
+
+# Copy sqlx offline query cache and migrations so compile-time checked
+# queries (sqlx::query!/query_as!) can be verified without a live DB
+# connection during the Docker build.
+COPY .sqlx ./.sqlx
+COPY migrations ./migrations
+
+# Force sqlx to use the committed .sqlx cache instead of attempting to
+# reach a live DATABASE_URL, which is not available in the build context.
+ENV SQLX_OFFLINE=true
 
 # Build the application
 RUN cargo build --release

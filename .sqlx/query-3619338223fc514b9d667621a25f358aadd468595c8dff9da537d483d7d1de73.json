@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO rate_limit_log (api_key_id, endpoint, request_count, window_start)\n            VALUES (?, ?, 1, ?)\n            ON CONFLICT(api_key_id, endpoint, window_start) DO UPDATE SET\n                request_count = request_count + 1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "3619338223fc514b9d667621a25f358aadd468595c8dff9da537d483d7d1de73"
+}

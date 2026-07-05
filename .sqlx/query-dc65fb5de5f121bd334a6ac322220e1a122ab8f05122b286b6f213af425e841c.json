@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM rate_limit_log WHERE window_start < ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "dc65fb5de5f121bd334a6ac322220e1a122ab8f05122b286b6f213af425e841c"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT COALESCE(SUM(request_count), 0) as count\n            FROM rate_limit_log\n            WHERE api_key_id = ? AND window_start >= ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "count",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "419bfb17d6523964d18a34350a4f6d25ca8c4735b0e5d4e5357edec408b0cc1d"
+}

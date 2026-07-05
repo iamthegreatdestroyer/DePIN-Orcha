@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            id, name, description, created_at, expires_at, last_used_at,\n            is_active, rate_limit_per_minute, permissions\n        FROM api_keys\n        ORDER BY created_at DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 3,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "expires_at",
+        "ordinal": 4,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "last_used_at",
+        "ordinal": 5,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "is_active",
+        "ordinal": 6,
+        "type_info": "Bool"
+      },
+      {
+        "name": "rate_limit_per_minute",
+        "ordinal": 7,
+        "type_info": "Int64"
+      },
+      {
+        "name": "permissions",
+        "ordinal": 8,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "eee00ce6a6570ddeff02d8eb2f2c8f9d181ea504cf1a408b0a2499ebecf67dc0"
+}
