@@ -57,6 +57,20 @@ impl ConsensusResult {
     pub fn is_approved(&self) -> bool {
         matches!(self.status, ConsensusStatus::Approved | ConsensusStatus::Bypassed)
     }
+
+    /// Denied bypass — used when HELIX is unreachable and bypass_on_error is false.
+    /// Fail-safe: an unreachable consensus service must not be treated as approval.
+    pub fn blocked(reason: &str) -> Self {
+        Self {
+            status: ConsensusStatus::Rejected,
+            score: 0.0,
+            node_id: "unreachable".to_string(),
+            reason: reason.to_string(),
+            eif: 0.0,
+            clq: 0.0,
+            dfi: 0.0,
+        }
+    }
 }
 
 // ── Wire format (matches HELIX ConsensusVote.dict()) ─────────────────────────
@@ -115,7 +129,8 @@ impl HelixConsensusClient {
             .unwrap_or_else(|_| DEFAULT_HELIX_CONSENSUS_URL.to_string());
         let bypass = env::var("HELIX_CONSENSUS_BYPASS")
             .map(|v| v == "true" || v == "1")
-            .unwrap_or(true); // default: bypass (non-blocking)
+            .unwrap_or(false); // default: fail-safe (deny when HELIX is unreachable).
+            // Set HELIX_CONSENSUS_BYPASS=true to opt into the old non-blocking behavior.
 
         let client = Client::builder()
             .timeout(Duration::from_secs(10))
@@ -156,14 +171,26 @@ impl HelixConsensusClient {
                     e,
                     if self.bypass_on_error { "bypassing" } else { "blocking" }
                 );
-                ConsensusResult::bypassed(&format!("HELIX unreachable: {e}"))
+                if self.bypass_on_error {
+                    ConsensusResult::bypassed(&format!("HELIX unreachable: {e}"))
+                } else {
+                    ConsensusResult::blocked(&format!("HELIX unreachable: {e}"))
+                }
             }
             Ok(resp) => {
                 let status_code = resp.status();
                 match resp.json::<HelixVoteResponse>().await {
                     Err(e) => {
-                        warn!("HELIX response parse error (HTTP {}): {}", status_code, e);
-                        ConsensusResult::bypassed(&format!("Parse error: {e}"))
+                        warn!(
+                            "HELIX response parse error (HTTP {}): {} — {}",
+                            status_code, e,
+                            if self.bypass_on_error { "bypassing" } else { "blocking" }
+                        );
+                        if self.bypass_on_error {
+                            ConsensusResult::bypassed(&format!("Parse error: {e}"))
+                        } else {
+                            ConsensusResult::blocked(&format!("Parse error: {e}"))
+                        }
                     }
                     Ok(vote) => {
                         let status = if vote.approved {
@@ -241,8 +268,23 @@ mod tests {
     }
 
     #[test]
+    fn test_blocked_not_approved() {
+        let r = ConsensusResult::blocked("HELIX unreachable: connection refused");
+        assert!(!r.is_approved());
+        assert_eq!(r.status, ConsensusStatus::Rejected);
+    }
+
+    #[test]
     fn test_client_default_uses_env_fallback() {
         let client = HelixConsensusClient::new();
         assert!(!client.helix_url.is_empty());
+    }
+
+    #[test]
+    fn test_bypass_defaults_to_false_without_env_override() {
+        // Fail-safe: absent HELIX_CONSENSUS_BYPASS, the gate must deny on error, not approve.
+        std::env::remove_var("HELIX_CONSENSUS_BYPASS");
+        let client = HelixConsensusClient::new();
+        assert!(!client.bypass_on_error);
     }
 }
