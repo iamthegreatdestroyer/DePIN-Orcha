@@ -54,6 +54,40 @@ impl ProtocolCoordinator {
         self.adapters.keys().cloned().collect()
     }
 
+    /// Connect every registered adapter.
+    ///
+    /// Returns the number of adapters that connected successfully. This is
+    /// advisory/best-effort: a failed `connect()` is logged and that adapter is
+    /// left disconnected — `poll_all` simply skips it — so one misconfigured
+    /// adapter never prevents the rest from feeding the optimizer.
+    ///
+    /// NOTE: the bundled adapters *model* earnings locally (a simulation);
+    /// connecting unlocks that model so the advisory optimization loop has data
+    /// to reason over. It performs no real on-network action and moves no funds.
+    pub async fn connect_all(&self) -> usize {
+        let mut connected = 0usize;
+        for (protocol_name, adapter_lock) in &self.adapters {
+            let mut adapter = adapter_lock.write().await;
+            match adapter.connect().await {
+                Ok(()) => {
+                    connected += 1;
+                    tracing::info!(
+                        "Connected protocol adapter '{}' (advisory/simulation)",
+                        protocol_name
+                    );
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "Adapter '{}' not connected ({}) — it will be skipped by poll_all",
+                        protocol_name,
+                        e
+                    );
+                }
+            }
+        }
+        connected
+    }
+
     /// Poll all adapters and aggregate metrics
     pub async fn poll_all(&self) -> OrchestrationResult<AggregatedMetrics> {
         let timestamp = Utc::now();

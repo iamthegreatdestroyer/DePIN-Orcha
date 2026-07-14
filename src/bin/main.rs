@@ -28,6 +28,15 @@
 //! - `DB_MIN_CONNECTIONS`: Min pool connections (default: 2)
 //! - `LOG_LEVEL`: Logging level (default: "info")
 //! - `RUST_LOG`: Rust logging configuration (overrides LOG_LEVEL)
+//!
+//! ### Protocol adapter credentials (advisory / simulation)
+//! The bundled adapters model earnings locally; a non-empty credential simply
+//! lets `connect()` succeed and unlock that model so the advisory loop has data.
+//! Supply real values to label an adapter, or leave unset for labeled
+//! simulation mode:
+//! - `GOLEM_ETH_WALLET`, `STREAMR_PRIVATE_KEY`,
+//!   `STORJ_NODE_ID` / `STORJ_WALLET_ADDRESS`,
+//!   `GRASS_AUTH_TOKEN` / `GRASS_EMAIL`
 
 use actix_web::{middleware, web, App, HttpServer};
 use std::sync::Arc;
@@ -104,29 +113,63 @@ async fn main() -> std::io::Result<()> {
     // reasons over. Without registered adapters there is nothing to poll and the
     // advisory loop has no data.
     //
-    // Adapters are created with default configs (no credentials). Connecting to
-    // live protocol networks requires real credentials and is out of scope for
-    // this advisory-only wiring.
+    // Each adapter's credential is read from the environment (see module docs)
+    // and falls back to a labeled simulation placeholder when unset. The bundled
+    // adapters model earnings locally, so a non-empty credential merely lets
+    // connect() succeed and unlock that model — nothing here touches a live
+    // network or moves funds. The adapters are connect()ed just below
+    // (connect_all) so the advisory loop actually has data, instead of every
+    // adapter sitting Disconnected (which yields zero earnings and a permanent
+    // "no opportunities").
     let mut coordinator = ProtocolCoordinator::new(1000); // Keep 1000 history entries
     coordinator.register_adapter(
         "streamr".to_string(),
-        Box::new(StreamrAdapter::new(StreamrConfig::default())),
+        Box::new(StreamrAdapter::new(StreamrConfig {
+            private_key: env_or_sim("STREAMR_PRIVATE_KEY", "simulation"),
+            ..Default::default()
+        })),
     );
     coordinator.register_adapter(
         "storj".to_string(),
-        Box::new(StorjAdapter::new(StorjConfig::default())),
+        Box::new(StorjAdapter::new(StorjConfig {
+            node_id: env_or_sim("STORJ_NODE_ID", "simulation"),
+            wallet_address: env_or_sim(
+                "STORJ_WALLET_ADDRESS",
+                "0x0000000000000000000000000000000000000000",
+            ),
+            ..Default::default()
+        })),
     );
     coordinator.register_adapter(
         "golem".to_string(),
-        Box::new(GolemAdapter::new(GolemConfig::default())),
+        Box::new(GolemAdapter::new(GolemConfig {
+            eth_wallet: env_or_sim(
+                "GOLEM_ETH_WALLET",
+                "0x0000000000000000000000000000000000000000",
+            ),
+            ..Default::default()
+        })),
     );
     coordinator.register_adapter(
         "grass".to_string(),
-        Box::new(GrassAdapter::new(GrassConfig::default())),
+        Box::new(GrassAdapter::new(GrassConfig {
+            auth_token: env_or_sim("GRASS_AUTH_TOKEN", "simulation"),
+            email: env_or_sim("GRASS_EMAIL", "simulation@localhost"),
+            ..Default::default()
+        })),
     );
     let coordinator = Arc::new(coordinator);
     log::info!(
         "✅ Protocol Coordinator initialized with {} registered adapters",
+        coordinator.registered_protocols().len()
+    );
+
+    // Connect the registered adapters so the advisory optimization loop has data
+    // to reason over (advisory-only + simulation — see connect_all()'s docs).
+    let connected = coordinator.connect_all().await;
+    log::info!(
+        "🔌 Connected {}/{} protocol adapters (advisory/simulation — modeled earnings, no live network, nothing applied)",
+        connected,
         coordinator.registered_protocols().len()
     );
 
@@ -221,6 +264,18 @@ async fn main() -> std::io::Result<()> {
     log::info!("👋 Goodbye!");
 
     Ok(())
+}
+
+/// Read a credential from the environment, falling back to a labeled simulation
+/// placeholder when unset or blank. The bundled protocol adapters model earnings
+/// locally, so this value only needs to be non-empty for `connect()` to succeed;
+/// a real value can be supplied via env to label the adapter.
+fn env_or_sim(key: &str, sim_placeholder: &str) -> String {
+    std::env::var(key)
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| sim_placeholder.to_string())
 }
 
 /// Load API configuration from environment variables
