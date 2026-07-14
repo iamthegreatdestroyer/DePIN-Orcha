@@ -44,6 +44,12 @@ use depin_orcha::{
     ReallocationEngine, ReallocationConfig,
     RealtimeMonitor, MonitorConfig,
 };
+use depin_orcha::protocols::{
+    golem::{GolemAdapter, GolemConfig},
+    grass::{GrassAdapter, GrassConfig},
+    storj::{StorjAdapter, StorjConfig},
+    streamr::{StreamrAdapter, StreamrConfig},
+};
 
 /// Main application entry point
 #[actix_web::main]
@@ -89,8 +95,40 @@ async fn main() -> std::io::Result<()> {
     // Step 5: Initialize Protocol Coordinator (Orchestration Engine)
     log::info!("🔧 Initializing Protocol Coordinator...");
     // Step 6: Create orchestration components
-    let coordinator = Arc::new(ProtocolCoordinator::new(1000)); // Keep 1000 history entries
-    log::info!("✅ Protocol Coordinator initialized");
+    //
+    // Register the protocol adapters on the coordinator BEFORE wrapping it in an
+    // Arc (register_adapter takes &mut self). This is the "coordinator feed"
+    // prerequisite for advisory optimization: the background optimization task
+    // calls coordinator.poll_all() each cycle, which polls exactly these
+    // registered adapters to build the AggregatedMetrics the EarningsOptimizer
+    // reasons over. Without registered adapters there is nothing to poll and the
+    // advisory loop has no data.
+    //
+    // Adapters are created with default configs (no credentials). Connecting to
+    // live protocol networks requires real credentials and is out of scope for
+    // this advisory-only wiring.
+    let mut coordinator = ProtocolCoordinator::new(1000); // Keep 1000 history entries
+    coordinator.register_adapter(
+        "streamr".to_string(),
+        Box::new(StreamrAdapter::new(StreamrConfig::default())),
+    );
+    coordinator.register_adapter(
+        "storj".to_string(),
+        Box::new(StorjAdapter::new(StorjConfig::default())),
+    );
+    coordinator.register_adapter(
+        "golem".to_string(),
+        Box::new(GolemAdapter::new(GolemConfig::default())),
+    );
+    coordinator.register_adapter(
+        "grass".to_string(),
+        Box::new(GrassAdapter::new(GrassConfig::default())),
+    );
+    let coordinator = Arc::new(coordinator);
+    log::info!(
+        "✅ Protocol Coordinator initialized with {} registered adapters",
+        coordinator.registered_protocols().len()
+    );
 
     let optimizer_config = OptimizerConfig::default();
     let optimizer = Arc::new(Mutex::new(EarningsOptimizer::new(optimizer_config)));
@@ -127,6 +165,7 @@ async fn main() -> std::io::Result<()> {
     let scheduler_config = depin_orcha::scheduler::SchedulerConfig::from_env();
     depin_orcha::scheduler::start_schedulers(
         coordinator.clone(),
+        optimizer.clone(),
         db_pool.clone(),
         scheduler_config,
     );

@@ -26,9 +26,10 @@
 use chrono::Utc;
 use sqlx::SqlitePool;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio::time::{interval, Duration};
 
-use crate::ProtocolCoordinator;
+use crate::{EarningsOptimizer, ProtocolCoordinator};
 
 /// Configuration for scheduler tasks
 #[derive(Debug, Clone)]
@@ -93,8 +94,14 @@ impl SchedulerConfig {
 }
 
 /// Start all background schedulers
+///
+/// The `optimizer` is shared (same `Arc`) with the API layer's `AppState` so
+/// the advisory recommendations surfaced by the background loop and the
+/// `/opportunities` / `/allocation` HTTP endpoints are computed from one
+/// consistent metrics history.
 pub fn start_schedulers(
     coordinator: Arc<ProtocolCoordinator>,
+    optimizer: Arc<Mutex<EarningsOptimizer>>,
     db_pool: SqlitePool,
     config: SchedulerConfig,
 ) {
@@ -106,6 +113,7 @@ pub fn start_schedulers(
     // Spawn optimization task
     tokio::spawn(optimization_task(
         coordinator.clone(),
+        optimizer.clone(),
         db_pool.clone(),
         config.clone(),
     ));
@@ -123,21 +131,30 @@ pub fn start_schedulers(
     log::info!("✅ All schedulers started successfully");
 }
 
-/// Periodic optimization task
+/// Periodic optimization task (ADVISORY-ONLY)
 ///
 /// Runs every N seconds to:
-/// 1. Collect current metrics
-/// 2. Analyze optimization opportunities
-/// 3. Execute automatic reallocations if threshold met
+/// 1. Feed the coordinator by polling all registered protocol adapters
+///    (`poll_all`), refreshing the aggregated metrics and history.
+/// 2. Persist the freshly-collected metrics to the database.
+/// 3. Invoke the `EarningsOptimizer` to compute reallocation opportunities
+///    and an optimal allocation plan, and LOG them as recommendations.
+///
+/// ADVISORY-ONLY: this task never applies a reallocation and never moves any
+/// workload — it only observes and recommends. Automatically executing the
+/// optimizer's recommendations (e.g. via `ReallocationEngine::execute_reallocation`
+/// or an adapter's `apply_allocation`) is intentionally DEFERRED and left as
+/// future work, to be gated behind an explicit operator opt-in.
 async fn optimization_task(
     coordinator: Arc<ProtocolCoordinator>,
+    optimizer: Arc<Mutex<EarningsOptimizer>>,
     db_pool: SqlitePool,
     config: SchedulerConfig,
 ) {
     let mut interval = interval(Duration::from_secs(config.optimization_interval));
     let mut run_count = 0u64;
 
-    log::info!("🔄 Optimization task started");
+    log::info!("🔄 Optimization task started (advisory-only mode)");
 
     loop {
         interval.tick().await;
@@ -145,15 +162,19 @@ async fn optimization_task(
 
         log::debug!("🔄 Running optimization task (run #{})", run_count);
 
-        // Get current metrics (ProtocolCoordinator is already thread-safe)
-        let metrics = match coordinator.get_current_metrics().await {
-            Ok(Some(m)) => m,
-            Ok(None) => {
-                log::debug!("No metrics available yet");
-                continue;
-            }
+        // ----------------------------------------------------------------
+        // Coordinator feed: actively poll every registered protocol adapter.
+        // This refreshes the coordinator's aggregated metrics + history so
+        // downstream consumers (this optimizer loop, the alert task via
+        // get_current_metrics, and the /opportunities & /allocation API
+        // endpoints) have real data. Without this poll the coordinator is
+        // constructed but never fed, so get_current_metrics() always returns
+        // None and optimization is a no-op.
+        // ----------------------------------------------------------------
+        let metrics = match coordinator.poll_all().await {
+            Ok(m) => m,
             Err(e) => {
-                log::error!("Failed to get metrics: {}", e);
+                log::error!("❌ Failed to poll protocol adapters: {}", e);
                 continue;
             }
         };
@@ -166,8 +187,79 @@ async fn optimization_task(
 
         log::debug!("✅ Metrics collected and stored successfully");
 
-        // TODO: Implement optimization logic with EarningsOptimizer
-        // Will be added in a follow-up commit
+        // ----------------------------------------------------------------
+        // ADVISORY-ONLY optimization.
+        //
+        // Invoke the EarningsOptimizer to (a) update its rolling history,
+        // (b) analyze reallocation opportunities, and (c) compute the optimal
+        // allocation plan. Results are ONLY LOGGED as recommendations.
+        //
+        // We deliberately do NOT call ReallocationEngine::execute_reallocation
+        // (nor apply_allocation on any adapter) here — no workloads are moved.
+        // Auto-applying these recommendations is DEFERRED future work.
+        // ----------------------------------------------------------------
+        let mut opt = optimizer.lock().await;
+
+        // Feed the optimizer's rolling history so confidence scoring improves
+        // as more samples accumulate.
+        opt.update_metrics(metrics.clone());
+
+        let opportunities = match opt.analyze_opportunities(&metrics) {
+            Ok(opps) => opps,
+            Err(e) => {
+                log::error!("❌ Optimizer failed to analyze opportunities: {}", e);
+                continue;
+            }
+        };
+
+        let plan = opt.calculate_optimal_allocation(&metrics).ok();
+
+        if opportunities.is_empty() {
+            log::debug!(
+                "🔎 [ADVISORY] No reallocation opportunities identified (run #{})",
+                run_count
+            );
+        } else {
+            log::info!(
+                "💡 [ADVISORY] {} reallocation opportunit{} identified (run #{}) — advisory-only, nothing applied",
+                opportunities.len(),
+                if opportunities.len() == 1 { "y" } else { "ies" },
+                run_count
+            );
+            for (idx, opp) in opportunities.iter().enumerate() {
+                log::info!(
+                    "   #{} [ADVISORY] recommend moving allocation {} -> {}: +${:.4}/hr (current ${:.4}/hr -> projected ${:.4}/hr, confidence {:.0}%) — NOT applied",
+                    idx + 1,
+                    opp.from_protocol,
+                    opp.to_protocol,
+                    opp.earnings_improvement,
+                    opp.current_rate,
+                    opp.projected_rate,
+                    opp.confidence * 100.0,
+                );
+            }
+
+            // Surface the optimizer's own verdict on whether the best
+            // opportunity clears its internal thresholds. Informational only
+            // in advisory-only mode — no action is taken regardless.
+            if opt.should_reallocate(&opportunities, plan.as_ref()) {
+                log::info!(
+                    "✅ [ADVISORY] Optimizer recommends reallocation (best opportunity clears thresholds) — auto-apply deferred, no action taken"
+                );
+            } else {
+                log::debug!("[ADVISORY] Optimizer does not recommend reallocation at this time");
+            }
+        }
+
+        if let Some(plan) = plan {
+            log::info!(
+                "📋 [ADVISORY] Optimal allocation plan: est. +${:.4}/hr, net benefit ${:.4}, ROI {:.1}%, confidence {:.0}% — advisory-only, not applied (auto-apply deferred)",
+                plan.estimated_improvement,
+                plan.net_benefit,
+                plan.roi_percent,
+                plan.confidence * 100.0,
+            );
+        }
     }
 }
 
