@@ -348,9 +348,16 @@ async fn shutdown_signal() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Serialize env-mutating tests: cargo runs tests in parallel threads
+    // that share the process environment, so API_*/DB_* set by one test
+    // must not race the removals/reads in another.
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_api_config_defaults() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         // Clear env vars for test
         std::env::remove_var("API_HOST");
         std::env::remove_var("API_PORT");
@@ -366,6 +373,7 @@ mod tests {
 
     #[test]
     fn test_db_config_defaults() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         // Clear env vars for test
         std::env::remove_var("DATABASE_URL");
         std::env::remove_var("DB_MAX_CONNECTIONS");
@@ -381,6 +389,7 @@ mod tests {
 
     #[test]
     fn test_api_config_from_env() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         std::env::set_var("API_HOST", "0.0.0.0");
         std::env::set_var("API_PORT", "3000");
         std::env::set_var("API_WORKERS", "8");
