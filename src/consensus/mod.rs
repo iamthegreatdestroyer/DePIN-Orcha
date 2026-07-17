@@ -12,4 +12,4 @@ pub use client::{ConsensusResult, ConsensusStatus, HelixConsensusClient};
 
 /// Default HELIX consensus endpoint.
 /// Override with `HELIX_CONSENSUS_URL` environment variable.
-pub const DEFAULT_HELIX_CONSENSUS_URL: &str = "http://localhost:8000/consensus/vote";
+pub const DEFAULT_HELIX_CONSENSUS_URL: &str = "http://127.0.0.1:8770/consensus/vote";
