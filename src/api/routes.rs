@@ -15,19 +15,31 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig, db_pool: Arc<SqlitePool>) 
     cfg.service(
         web::scope("/api/v1")
             .wrap(middleware::RequestIdMiddleware)
-            // Public routes (no authentication required)
+            // Public routes (no authentication required) -- read-only, no state change
             .route("/health", web::get().to(handlers::health_check))
             .route("/status", web::get().to(handlers::get_status))
-            // Node registry & task routing (public for DePIN node operators)
-            .route("/nodes/register", web::post().to(node_handlers::register_node))
-            .route("/nodes/{id}", web::delete().to(node_handlers::deregister_node))
-            .route("/nodes/discover", web::get().to(node_handlers::discover_nodes))
-            .route("/tasks/route", web::post().to(node_handlers::route_task))
             // Protected endpoints sub-scope (authentication required)
             .service(
                 web::scope("")
                     .wrap(middleware::RateLimitMiddleware::new(db_pool.clone()))
                     .wrap(middleware::AuthMiddleware::new(db_pool.clone()))
+                    // Node registry & task routing.
+                    //
+                    // These were previously public ("public for DePIN node operators"), but
+                    // there is no ownership model: `deregister_node` deletes purely by the
+                    // node id in the path (see api/nodes.rs) and nothing in that module
+                    // consults an api key, token or owner. Unauthenticated, that let any
+                    // caller deregister ANY node and route tasks to it -- an authorization
+                    // hole rather than an intentional openness.
+                    //
+                    // If public self-registration is wanted again, it needs an ownership /
+                    // claim model first (e.g. a node-issued enrolment token that binds a
+                    // node id to its operator), so that deregistration can be restricted to
+                    // the owner. Until then these stay authenticated.
+                    .route("/nodes/register", web::post().to(node_handlers::register_node))
+                    .route("/nodes/{id}", web::delete().to(node_handlers::deregister_node))
+                    .route("/nodes/discover", web::get().to(node_handlers::discover_nodes))
+                    .route("/tasks/route", web::post().to(node_handlers::route_task))
                     // Metrics endpoints
                     .route("/metrics", web::get().to(handlers::get_metrics))
                     .route("/metrics/current", web::get().to(handlers::get_metrics))
