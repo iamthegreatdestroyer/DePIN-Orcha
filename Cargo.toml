@@ -2,7 +2,7 @@
 name = "depin-orcha"
 version = "0.1.0"
 edition = "2021"
-authors = ["DePIN Orcha Contributors"]
+authors = ["Stephen Bilodeau <sgbilod@gmail.com>"]
 description = "Intelligent Multi-Protocol DePIN Orchestrator"
 repository = "https://github.com/iamthegreatdestroyer/DePIN-Orcha"
 license = "MIT"
